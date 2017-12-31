@@ -1,6 +1,6 @@
 /*
   ESP32_SPIFFS_UTF8toSJIS.cpp - Arduino core for the ESP32 Library.
-  Beta version 1.0
+  Beta version 1.1
 
   This is a library for converting from UTF-8 code string to Shift_JIS code string.
   In advance, you need to upload a conversion table file Utf8Sjis.tbl using micro SPIFFS & ESP-WROOM-32 ( ESP32 ).
@@ -36,9 +36,8 @@ ESP32_SPIFFS_UTF8toSJIS::ESP32_SPIFFS_UTF8toSJIS(){}
 //*********UTF8 to Shift_JIS 初期化*************************************************************
 void ESP32_SPIFFS_UTF8toSJIS::ESP32_SPIFFS_UTF8toSJIS_Init(const char* UTF8SJIS_file)
 {
-  Serial.begin(115200);
-
-  SPIFFS.begin(true);
+  SPIFFS.begin();
+  //SPIFFS.begin(true);
 
   Serial.println(F("SPIFFS initialized."));
   _UtoS = SPIFFS.open(UTF8SJIS_file, FILE_READ);
@@ -57,57 +56,25 @@ void ESP32_SPIFFS_UTF8toSJIS::ESP32_SPIFFS_UTF8toSJIS_Close(){
   _UtoS.close();
   delay(1);
   Serial.println(F("--------------3 files closed"));
+  SPIFFS.end();
+  Serial.println(F("--------------SPIFFS.end"));
 }
 //***********String型文字列をShift_JISコードに変換 ファイルハンドル込み************************************
 uint16_t ESP32_SPIFFS_UTF8toSJIS::UTF8_to_SJIS(String strUTF8, uint8_t* sjis_byte)
 {
-  uint16_t sj_cnt = 0;
-  uint16_t fnt_cnt = 0;
-  uint32_t sp_addres=0x9DCC;//スペース
-  uint8_t SJ[2];
-  
-  while(strUTF8[fnt_cnt] != '\0'){
-    if(strUTF8[fnt_cnt]>=0xC2 && strUTF8[fnt_cnt]<=0xD1){//2バイト文字
-      ESP32_SPIFFS_UTF8toSJIS::UTF8_To_SJIS_code_cnv(strUTF8[fnt_cnt],strUTF8[fnt_cnt+1],0x00, &sp_addres);
-      ESP32_SPIFFS_UTF8toSJIS::SPIFFS_Flash_UTF8SJIS_Table_Read(_UtoS, sp_addres, SJ);
-      sjis_byte[sj_cnt] = SJ[0];
-      sjis_byte[sj_cnt+1] = SJ[1];
-      sj_cnt = sj_cnt + 2;
-      fnt_cnt = fnt_cnt + 2;
-    }else if(strUTF8[fnt_cnt]>=0xE2 && strUTF8[fnt_cnt]<=0xEF){
-      ESP32_SPIFFS_UTF8toSJIS::UTF8_To_SJIS_code_cnv(strUTF8[fnt_cnt],strUTF8[fnt_cnt+1],strUTF8[fnt_cnt+2], &sp_addres);
-      ESP32_SPIFFS_UTF8toSJIS::SPIFFS_Flash_UTF8SJIS_Table_Read(_UtoS, sp_addres, SJ);
-      if((SJ[0]>=0xA1 && SJ[0]<=0xDF)){ //Shift_JISで半角カナコードが返ってきた場合の対処
-        sjis_byte[sj_cnt] = SJ[0];
-        sj_cnt++;
-      }else{
-        sjis_byte[sj_cnt] = SJ[0];
-        sjis_byte[sj_cnt+1] = SJ[1];
-        sj_cnt = sj_cnt + 2;
-      }
-      fnt_cnt = fnt_cnt +3;
-    }else if(strUTF8[fnt_cnt]>=0x20 && strUTF8[fnt_cnt]<=0x7E){
-      SJ[0] = strUTF8[fnt_cnt];
-      sjis_byte[sj_cnt] = strUTF8[fnt_cnt];
-      sj_cnt++;
-      fnt_cnt++;
-    }else{ //その他は全て半角スペースとする。
-      sjis_byte[sj_cnt] = 0x20;
-      sj_cnt++;
-      fnt_cnt++;
-    }
-    yield();
-  }
-  return sj_cnt;
+  uint16_t sj_length = 0;
+  ESP32_SPIFFS_UTF8toSJIS::UTF8_to_SJIS_str_cnv(_UtoS, strUTF8, sjis_byte, &sj_length);
+
+  return sj_length;
 }
 //***********String型文字列をShift_JISコードに変換 ファイルハンドル外部代入************************************
 void ESP32_SPIFFS_UTF8toSJIS::UTF8_to_SJIS_str_cnv(File f2, String strUTF8, uint8_t* sjis_byte, uint16_t* sj_length)
 {
   uint16_t sj_cnt = 0;
   uint16_t fnt_cnt = 0;
-  uint32_t sp_addres=0x9DCC;//スペース
+  uint32_t sp_addres = 0x9DCC;//スペース
   uint8_t SJ[2];
-  
+
   while(strUTF8[fnt_cnt] != '\0'){
     if(strUTF8[fnt_cnt]>=0xC2 && strUTF8[fnt_cnt]<=0xD1){//2バイト文字
       ESP32_SPIFFS_UTF8toSJIS::UTF8_To_SJIS_code_cnv(strUTF8[fnt_cnt],strUTF8[fnt_cnt+1],0x00, &sp_addres);
@@ -151,7 +118,7 @@ void ESP32_SPIFFS_UTF8toSJIS::UTF8_To_SJIS_code_cnv(uint8_t utf8_1, uint8_t utf8
     *SPIFFS_addrs = ((utf8_1<<8 | utf8_2)-0xC2A2)*2 + 0xB0; //文字"¢" UTF8コード C2A2～、S_jisコード8191
   }else if(utf8_2>=0x80){
     uint32_t UTF8uint = (utf8_1<<16) | (utf8_2<<8) | utf8_3;
-    
+
     switch(utf8_1){
       case 0xE2:
         *SPIFFS_addrs = (UTF8uint-0xE28090)*2 + 0x1EEC; //文字"‐" UTF8コード E28090～、S_jisコード815D
@@ -188,7 +155,7 @@ void ESP32_SPIFFS_UTF8toSJIS::UTF8_To_SJIS_code_cnv(uint8_t utf8_1, uint8_t utf8
     }
   } 
 }
-
+//***************************************
 void ESP32_SPIFFS_UTF8toSJIS::SPIFFS_Flash_UTF8SJIS_Table_Read(File ff, uint32_t addrs, uint8_t* buf)
 {
   if(ff){

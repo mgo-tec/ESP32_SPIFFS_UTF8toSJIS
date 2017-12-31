@@ -1,6 +1,6 @@
 /*
   ESP32_SPIFFS_UTF8toSJIS.cpp - Arduino core for the ESP32 Library.
-  Beta version 1.0
+  Beta version 1.1
   
   This is a library for converting from UTF-8 code string to Shift_JIS code string.
   In advance, you need to upload a conversion table file Utf8Sjis.tbl using micro SPIFFS & ESP-WROOM-32 ( ESP32 ).
@@ -31,6 +31,7 @@ SOFTWARE.
 
 #ifndef ESP32_SPIFFS_UTF8TOSJIS_H_INCLUDED
 #define ESP32_SPIFFS_UTF8TOSJIS_H_INCLUDED
+#include <Arduino.h>
 #include "SPIFFS.h"
 
 extern File _UtoS;
