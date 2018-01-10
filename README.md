@@ -2,7 +2,7 @@
 
 これは Arduino core for the ESP32 ( ESP-WROOM-32 )の Arduino IDE ライブラリです。 
 SPIFFS ファイルシステム専用です。  
-Version 1.1  
+Version 1.2  
   
 UTF8 to Shift_JIS 変換テーブルファイル "Utf8Sjis.tbl" を予めSPIFFSフラッシュにコピーしておく必要があります。  
 UTF-8コードのString文字列をShift_JIS文字列コードに変換できます。  
@@ -11,6 +11,9 @@ UTF-8コードのString文字列をShift_JIS文字列コードに変換できま
 JIS第一水準、第二水準、１３区、半角カナが変換可能  
   
 【更新履歴】  
+(1.2)  
+フォントアドレスの計算式を見直しました。  
+  
 (1.1)  
 軽微な修正  
   
